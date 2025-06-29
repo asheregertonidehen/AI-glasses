@@ -1,28 +1,38 @@
-import random
-import cv2 #gets images from the webcam
-from PIL import Image #manipulating images
-from pytesseract import pytesseract #OCR tech for reading the words
+import cv2
+from PIL import Image
+from pytesseract import pytesseract
+import pyttsx3
 
-camera=cv2.VideoCapture(0) # created to represent the came (0 access the webcam)
+pytesseract.tesseract_cmd = r"/opt/homebrew/bin/tesseract"
 
-image_name = str(f"test{str(random.randint(2,1000000))}")
+engine = pyttsx3.init()
+camera = cv2.VideoCapture(0)
 
-def tesseract():
-    path_to_tesseract = r"/opt/homebrew/bin/tesseract"  # Update this path if your tesseract is elsewhere
-    ImagePath = "image_name"
-    pytesseract.tesseract_cmd=path_to_tesseract
-    text=pytesseract.image_to_string(Image.open(ImagePath))
-    print(text[:-1])
-tesseract()
-
-while True: #read webcam stream untill loop breaks
-    _,frame=camera.read() #_, ignores the first return boolean value
-    cv2.imshow('Text detection', frame) #reads the image and shows it
-    if cv2.waitKey(1)& 0xFF==ord('s'): #if the s key is pressed:
-        cv2.imwrite(image_name, frame) #store the image as "test1.jpg"
-        tesseract()
-    if cv2.waitKey(1)& 0xFF==ord('z'):
+while True:
+    ret, frame = camera.read()
+    if not ret:
         break
+
+    # Convert frame (BGR) to RGB for PIL
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    pil_img = Image.fromarray(rgb)
+
+    # OCR on the current frame
+    text = pytesseract.image_to_string(pil_img).strip()
+    print("\033c", end="")  # Clear terminal for real-time effect
+    print(text)
+
+    # Read aloud the text when s(for speak) is pressed
+    if text and cv2.waitKey(1) & 0xFF == ord('s'):
+        engine.say(text)
+        engine.runAndWait()
+
+    # Show the frame
+    cv2.imshow('Text detection', frame)
+
+    # Exit on 'z'
+    if cv2.waitKey(1) & 0xFF == ord('z'):
+        break
+
 camera.release()
 cv2.destroyAllWindows()
-
